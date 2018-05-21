@@ -1,0 +1,12 @@
+val data1 = sc.textFile("/FileStore/tables/soc_LiveJournal1Adj-2d179.txt")
+data1.collect()
+
+val row=data1.filter{_.split("\t").size>1}
+val key_value_pairs=row.map(line=>(line.split("\t")(0),line.split("\t")(1).split(",")))
+val friend_pair=key_value_pairs.flatMap{
+  case(frnd,frndlist)=>{frndlist.map(x=>((x.toInt min frnd.toInt,x.toInt max frnd.toInt),frndlist))}
+}
+dbutils.fs.rm("/question_1",true)
+val mutualfriends=friend_pair.reduceByKey((a,b)=>a.toSet.intersect(b.toSet).toArray).filter{_._2.length>0}
+val solution=mutualfriends.map(e=>(e._1._1+"\t"+e._1._2+"\t"+e._2.mkString(","))).saveAsTextFile("/question_1")
+dbutils.fs.cp("/question_1/part-00000","dbfs:/FileStore/tables/output_q1.txt",true)
